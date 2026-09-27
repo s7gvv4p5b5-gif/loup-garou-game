@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+<title>Loup-Garou en ligne</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css" />
+<link rel="icon" href="data:,">
+</head>
+<body>
+<div id="leaves" aria-hidden="true">
+  <span class="leaf">🍁</span><span class="leaf">🎃</span><span class="leaf">🍂</span>
+  <span class="leaf">👻</span><span class="leaf">🍁</span><span class="leaf">🦇</span>
+  <span class="leaf">🍂</span><span class="leaf">🎃</span>
+</div>
+
+<div id="app">
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- Écran d'accueil : créer ou rejoindre une partie -->
+  <div id="screen-home" class="screen active">
+    <div class="brand">
+      <div class="moon">🎃🌕🕸️</div>
+      <h1>Loup-Garou</h1>
+      <p class="tagline">Le village dort, la lune d'Halloween se lève...</p>
+    </div>
+    <div class="card">
+      <label for="pseudo-input">Ton pseudo</label>
+      <input id="pseudo-input" type="text" maxlength="20" placeholder="Ex : Camille" autocomplete="off" />
+      <button id="btn-create" class="btn btn-primary">🐺 Créer une partie</button>
+      <div class="divider">ou</div>
+      <label for="code-input">Code du salon</label>
+      <input id="code-input" type="text" maxlength="4" placeholder="Ex : ABCD" class="code-input" autocomplete="off" />
+      <button id="btn-join" class="btn btn-secondary">Rejoindre</button>
+    </div>
+  </div>
+
+  <!-- Salon d'attente -->
+  <div id="screen-lobby" class="screen">
+    <div class="lobby-header">
+      <div>
+        <span class="label">Code du salon</span>
+        <div class="room-code" id="room-code">----</div>
+      </div>
+      <button id="btn-copy-link" class="btn btn-small">🔗 Copier le lien</button>
+    </div>
+
+    <div class="card">
+      <h3>Joueurs (<span id="player-count">0</span>)</h3>
+      <ul id="player-list" class="player-list"></ul>
+    </div>
+
+    <div id="host-settings" class="card hidden">
+      <h3>⚙️ Paramètres</h3>
+      <div class="settings-grid">
+        <label>Nombre de loups
+          <input type="number" id="set-wolves" min="1" max="6" value="2" />
+        </label>
+        <label>Discussion (sec)
+          <input type="number" id="set-discussion" min="15" value="90" />
+        </label>
+        <label>Vote (sec)
+          <input type="number" id="set-vote" min="10" value="45" />
+        </label>
+        <label class="toggle"><input type="checkbox" id="set-voyante" checked /> 🔮 Voyante</label>
+        <label class="toggle"><input type="checkbox" id="set-sorciere" checked /> ❤️ Sorcière</label>
+        <label class="toggle"><input type="checkbox" id="set-chasseur" checked /> 🏹 Chasseur</label>
+        <label class="toggle"><input type="checkbox" id="set-cupidon" checked /> 💘 Cupidon</label>
+        <label class="toggle"><input type="checkbox" id="set-ancien" checked /> 🧓 L'Ancien</label>
+        <label class="toggle"><input type="checkbox" id="set-petite-fille" checked /> 👧 Petite Fille</label>
+      </div>
+    </div>
+
+    <button id="btn-ready" class="btn btn-primary">Je suis prêt</button>
+    <button id="btn-start" class="btn btn-danger hidden">🚀 Lancer la partie</button>
+    <p class="hint" id="lobby-hint"></p>
+  </div>
+
+  <!-- Écran de jeu : nuit / jour / discussion / vote -->
+  <div id="screen-game" class="screen">
+    <div class="game-header">
+      <div id="phase-badge" class="phase-badge">🌙 Nuit</div>
+      <div id="timer" class="timer"></div>
+    </div>
+
+    <div id="role-card" class="role-card hidden">
+      <div class="role-emoji" id="role-emoji">🐺</div>
+      <div class="role-name" id="role-name">—</div>
+      <div class="role-desc" id="role-desc"></div>
+      <div class="role-extra hidden" id="role-extra"></div>
+      <div class="role-extra lover hidden" id="role-lover"></div>
+    </div>
+
+    <div id="action-zone" class="card"></div>
+
+    <button id="btn-host-advance" class="btn btn-primary hidden"></button>
+
+    <div class="card">
+      <h4>Village</h4>
+      <ul id="game-player-list" class="player-list compact"></ul>
+    </div>
+  </div>
+
+  <!-- Écran de fin de partie -->
+  <div id="screen-end" class="screen">
+    <div class="card end-card">
+      <div id="winner-banner" class="winner-banner"></div>
+      <h3>Rôles révélés</h3>
+      <ul id="end-role-list" class="player-list"></ul>
+      <button id="btn-replay" class="btn btn-primary hidden">🔁 Rejouer</button>
+      <p class="hint" id="end-hint"></p>
+    </div>
+  </div>
+</div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
