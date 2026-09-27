@@ -13,6 +13,19 @@ const screens = {
   end: el('screen-end'),
 };
 
+const CAUSE_TEXT = {
+  loups: "a été dévoré·e par les loups",
+  poison: "a été empoisonné·e par la Sorcière",
+  petite_fille: "a été repérée en train d'espionner les loups, et n'a pas survécu à sa curiosité",
+  amour: "est mort·e de chagrin",
+  vote: "a été éliminé·e par le village",
+  chasseur: "a été emporté·e par le tir du Chasseur",
+};
+
+function causeText(cause) {
+  return CAUSE_TEXT[cause] || 'est mort·e';
+}
+
 function showScreen(name) {
   Object.values(screens).forEach(s => s.classList.remove('active'));
   screens[name].classList.add('active');
@@ -73,6 +86,16 @@ socket.on('voyante_result', ({ targetPseudo, roleName }) => {
   toast(`🔮 ${targetPseudo} est : ${roleName}`);
 });
 
+socket.on('lover_result', ({ partnerPseudo }) => {
+  toast(`💘 Tu es désormais amoureux·se de ${partnerPseudo} !`);
+});
+
+socket.on('petite_fille_result', ({ wolfNames }) => {
+  toast(wolfNames.length
+    ? `👧 Tu as repéré les loups : ${wolfNames.join(', ')}`
+    : `👧 Tu n'as rien pu observer cette nuit.`);
+});
+
 // ---------------- Lobby : actions ----------------
 
 el('btn-copy-link').addEventListener('click', () => {
@@ -89,9 +112,12 @@ el('btn-start').addEventListener('click', () => socket.emit('start_game'));
 el('btn-host-advance').addEventListener('click', () => socket.emit('host_advance'));
 el('btn-replay').addEventListener('click', () => socket.emit('request_replay'));
 
-['set-wolves', 'set-voyante', 'set-sorciere', 'set-chasseur', 'set-discussion', 'set-vote'].forEach(id => {
-  el(id).addEventListener('change', sendSettings);
-});
+const SETTINGS_INPUT_IDS = [
+  'set-wolves', 'set-voyante', 'set-sorciere', 'set-chasseur',
+  'set-cupidon', 'set-ancien', 'set-petite-fille', 'set-discussion', 'set-vote',
+];
+SETTINGS_INPUT_IDS.forEach(id => el(id).addEventListener('change', sendSettings));
+
 function sendSettings() {
   socket.emit('update_settings', {
     settings: {
@@ -99,6 +125,9 @@ function sendSettings() {
       includeVoyante: el('set-voyante').checked,
       includeSorciere: el('set-sorciere').checked,
       includeChasseur: el('set-chasseur').checked,
+      includeCupidon: el('set-cupidon').checked,
+      includeAncien: el('set-ancien').checked,
+      includePetiteFille: el('set-petite-fille').checked,
       discussionDuration: parseInt(el('set-discussion').value, 10),
       voteDuration: parseInt(el('set-vote').value, 10),
     },
@@ -144,16 +173,18 @@ function renderLobby(state) {
   el('btn-start').classList.toggle('hidden', !isHost);
   el('btn-ready').textContent = state.players.find(p => p.isYou)?.ready ? '✅ Prêt !' : 'Je suis prêt';
 
-  const inputs = ['set-wolves', 'set-voyante', 'set-sorciere', 'set-chasseur', 'set-discussion', 'set-vote'];
   if (!isHost) {
     el('set-wolves').value = state.settings.numWolves;
     el('set-voyante').checked = state.settings.includeVoyante;
     el('set-sorciere').checked = state.settings.includeSorciere;
     el('set-chasseur').checked = state.settings.includeChasseur;
+    el('set-cupidon').checked = state.settings.includeCupidon;
+    el('set-ancien').checked = state.settings.includeAncien;
+    el('set-petite-fille').checked = state.settings.includePetiteFille;
     el('set-discussion').value = state.settings.discussionDuration;
     el('set-vote').value = state.settings.voteDuration;
   }
-  inputs.forEach(id => { el(id).disabled = !isHost; });
+  SETTINGS_INPUT_IDS.forEach(id => { el(id).disabled = !isHost; });
 
   const connectedCount = state.players.filter(p => p.connected).length;
   const readyCount = state.players.filter(p => p.ready && p.connected).length;
@@ -183,6 +214,22 @@ function renderGame(state) {
     el('role-emoji').textContent = you.roleEmoji || '❔';
     el('role-name').textContent = you.roleName || '';
     el('role-desc').textContent = you.roleDescription || '';
+
+    const extraEl = el('role-extra');
+    if (you.role === 'ancien') {
+      extraEl.textContent = you.extraLife ? '🛡️ Ta protection est intacte.' : '🛡️ Tu as déjà utilisé ta protection.';
+      extraEl.classList.remove('hidden');
+    } else {
+      extraEl.classList.add('hidden');
+    }
+
+    const loverEl = el('role-lover');
+    if (you.loverPartnerPseudo) {
+      loverEl.textContent = `💘 Amoureux·se de ${you.loverPartnerPseudo}`;
+      loverEl.classList.remove('hidden');
+    } else {
+      loverEl.classList.add('hidden');
+    }
   } else {
     roleCard.classList.add('hidden');
   }
@@ -225,11 +272,11 @@ function renderActionZone(state) {
   if (state.phase === 'vote_reveal') {
     const r = state.lastVoteResult;
     let html = r?.eliminated
-      ? `<p class="reveal">${escapeHtml(r.eliminated.pseudo)} a été éliminé·e par le village : <strong>${escapeHtml(r.eliminated.roleName)}</strong></p>`
+      ? `<p class="reveal">${escapeHtml(r.eliminated.pseudo)} ${causeText(r.eliminated.cause)} : <strong>${escapeHtml(r.eliminated.roleName)}</strong></p>`
       : `<p class="reveal">Égalité : personne n'est éliminé aujourd'hui.</p>`;
-    if (r?.hunterVictim) {
-      html += `<p class="reveal">🏹 En représailles, ${escapeHtml(r.hunterVictim.pseudo)} (${escapeHtml(r.hunterVictim.roleName)}) est emporté·e.</p>`;
-    }
+    (r?.extraDeaths || []).forEach(d => {
+      html += `<p class="reveal">💔 ${escapeHtml(d.pseudo)} ${causeText(d.cause)} : <strong>${escapeHtml(d.roleName)}</strong></p>`;
+    });
     zone.innerHTML = html;
     return;
   }
@@ -244,12 +291,28 @@ function renderActionZone(state) {
   const alivePlayers = state.players.filter(p => p.alive && !p.isYou);
   const pending = state.pendingAction;
 
-  if (pending === 'voyante') {
+  if (pending === 'cupidon') {
+    zone.innerHTML = `<p class="prompt">💘 Choisis les deux joueurs qui tombent amoureux cette nuit :</p>`;
+    renderCupidonPicker(zone, alivePlayers.concat(you.alive ? [{ token: you.token, pseudo: you.pseudo + ' (toi)' }] : []));
+  } else if (pending === 'voyante') {
     zone.innerHTML = `<p class="prompt">🔮 Choisis un joueur dont tu veux découvrir le rôle :</p>`;
     zone.appendChild(buildTargetButtons(alivePlayers, (targetToken) => socket.emit('voyante_action', { targetToken })));
   } else if (pending === 'loups') {
     zone.innerHTML = `<p class="prompt">🐺 Choisissez ensemble votre victime :</p>`;
     zone.appendChild(buildTargetButtons(alivePlayers, (targetToken) => socket.emit('wolf_action', { targetToken })));
+  } else if (pending === 'petite_fille') {
+    zone.innerHTML = `<p class="prompt">👧 Veux-tu espionner les loups cette nuit ? Tu risques d'être repérée...</p>`;
+    const spyBtn = document.createElement('button');
+    spyBtn.className = 'btn btn-secondary';
+    spyBtn.textContent = '👀 Espionner (risqué)';
+    spyBtn.onclick = () => { socket.emit('petite_fille_action', { spy: true }); disableActionZone(); };
+    const skipBtn = document.createElement('button');
+    skipBtn.className = 'btn btn-small';
+    skipBtn.style.marginTop = '10px';
+    skipBtn.textContent = 'Rester bien sagement couchée';
+    skipBtn.onclick = () => { socket.emit('petite_fille_action', { spy: false }); disableActionZone(); };
+    zone.appendChild(spyBtn);
+    zone.appendChild(skipBtn);
   } else if (pending === 'sorciere') {
     const target = state.wolfTargetPseudo;
     zone.innerHTML = `<p class="prompt">❤️ Les loups ont désigné : <strong>${target ? escapeHtml(target) : 'personne cette nuit'}</strong></p>`;
@@ -264,7 +327,7 @@ function renderActionZone(state) {
       const p = document.createElement('p');
       p.className = 'prompt';
       p.style.marginTop = '14px';
-      p.textContent = 'Ou empoisonner quelqu\'un :';
+      p.textContent = "Ou empoisonner quelqu'un :";
       zone.appendChild(p);
       zone.appendChild(buildTargetButtons(alivePlayers, (targetToken) => socket.emit('sorciere_action', { poisonTargetToken: targetToken })));
     }
@@ -289,6 +352,33 @@ function renderActionZone(state) {
   }
 }
 
+function renderCupidonPicker(zone, players) {
+  let picked = [];
+  const wrap = document.createElement('div');
+  wrap.className = 'target-grid';
+  const buttons = players.map(p => {
+    const btn = document.createElement('button');
+    btn.className = 'btn target-btn';
+    btn.textContent = p.pseudo;
+    btn.onclick = () => {
+      if (picked.includes(p.token)) {
+        picked = picked.filter(t => t !== p.token);
+        btn.classList.remove('picked');
+      } else if (picked.length < 2) {
+        picked.push(p.token);
+        btn.classList.add('picked');
+      }
+      if (picked.length === 2) {
+        socket.emit('cupidon_action', { loverAToken: picked[0], loverBToken: picked[1] });
+        buttons.forEach(b => { b.disabled = true; });
+      }
+    };
+    wrap.appendChild(btn);
+    return btn;
+  });
+  zone.appendChild(wrap);
+}
+
 function disableActionZone() {
   el('action-zone').querySelectorAll('button').forEach(b => { b.disabled = true; });
 }
@@ -297,7 +387,7 @@ function renderDeathsList(deaths) {
   if (!deaths || deaths.length === 0) {
     return `<p class="reveal">Cette nuit, personne n'est mort. Le village a eu de la chance.</p>`;
   }
-  return deaths.map(d => `<p class="reveal">💀 ${escapeHtml(d.pseudo)} a été emporté·e : <strong>${escapeHtml(d.roleName)}</strong></p>`).join('');
+  return deaths.map(d => `<p class="reveal">💀 ${escapeHtml(d.pseudo)} ${causeText(d.cause)} : <strong>${escapeHtml(d.roleName)}</strong></p>`).join('');
 }
 
 function buildTargetButtons(players, onPick) {
@@ -332,9 +422,13 @@ function renderTimer(endsAt) {
 
 function renderEnd(state) {
   const banner = el('winner-banner');
-  const wolvesWon = state.winner === 'loups';
-  banner.textContent = wolvesWon ? '🐺 Les Loups-Garous ont gagné !' : '🏡 Le Village a gagné !';
-  banner.className = 'winner-banner ' + (wolvesWon ? 'loups' : 'village');
+  const labels = {
+    loups: '🐺 Les Loups-Garous ont gagné !',
+    village: '🏡 Le Village a gagné !',
+    amoureux: "💘 L'Amour a gagné !",
+  };
+  banner.textContent = labels[state.winner] || 'Partie terminée';
+  banner.className = 'winner-banner ' + (state.winner || '');
 
   const list = el('end-role-list');
   list.innerHTML = '';

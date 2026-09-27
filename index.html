@@ -4,19 +4,28 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
 <title>Loup-Garou en ligne</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Creepster&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css" />
 <link rel="icon" href="data:,">
 </head>
 <body>
+<div id="leaves" aria-hidden="true">
+  <span class="leaf">🍁</span><span class="leaf">🎃</span><span class="leaf">🍂</span>
+  <span class="leaf">👻</span><span class="leaf">🍁</span><span class="leaf">🦇</span>
+  <span class="leaf">🍂</span><span class="leaf">🎃</span>
+</div>
+
 <div id="app">
   <div id="toast" class="toast hidden"></div>
 
   <!-- Écran d'accueil : créer ou rejoindre une partie -->
   <div id="screen-home" class="screen active">
     <div class="brand">
-      <div class="moon">🌕</div>
+      <div class="moon">🎃🌕🕸️</div>
       <h1>Loup-Garou</h1>
-      <p class="tagline">Le village dort... mais pas pour longtemps.</p>
+      <p class="tagline">Le village dort, la lune d'Halloween se lève...</p>
     </div>
     <div class="card">
       <label for="pseudo-input">Ton pseudo</label>
@@ -59,6 +68,9 @@
         <label class="toggle"><input type="checkbox" id="set-voyante" checked /> 🔮 Voyante</label>
         <label class="toggle"><input type="checkbox" id="set-sorciere" checked /> ❤️ Sorcière</label>
         <label class="toggle"><input type="checkbox" id="set-chasseur" checked /> 🏹 Chasseur</label>
+        <label class="toggle"><input type="checkbox" id="set-cupidon" checked /> 💘 Cupidon</label>
+        <label class="toggle"><input type="checkbox" id="set-ancien" checked /> 🧓 L'Ancien</label>
+        <label class="toggle"><input type="checkbox" id="set-petite-fille" checked /> 👧 Petite Fille</label>
       </div>
     </div>
 
@@ -78,6 +90,8 @@
       <div class="role-emoji" id="role-emoji">🐺</div>
       <div class="role-name" id="role-name">—</div>
       <div class="role-desc" id="role-desc"></div>
+      <div class="role-extra hidden" id="role-extra"></div>
+      <div class="role-extra lover hidden" id="role-lover"></div>
     </div>
 
     <div id="action-zone" class="card"></div>
