@@ -14,7 +14,7 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
-app.use(express.static(path.join(__dirname, '..', 'client')));
+app.use(express.static(__dirname));
 
 const rooms = new Map(); // code -> Room
 const ROOM_CLEANUP_INTERVAL = 5 * 60 * 1000;
